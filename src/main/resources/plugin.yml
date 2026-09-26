@@ -1,0 +1,17 @@
+name: scitulus
+version: ${version}
+main: org.icarus.scitulus.Scitulus
+description: ${description}
+api-version: "1.21.11"
+authors: [ Ph0sphorW ]
+
+commands:
+  scitulus:
+    description: Scitulus admin command
+    aliases: [ sci ]
+    permission: scitulus.command
+
+permissions:
+  scitulus.command:
+    description: Allows /scitulus
+    default: op
