@@ -58,6 +58,10 @@ public final class TrimData {
         return key;
     }
 
+    public static String slotToken(EquipmentSlotGroup slot) {
+        return slot.toString();
+    }
+
     public record MaterialBonus(String id,
                                 TrimMaterial material,
                                 String label,
@@ -65,8 +69,8 @@ public final class TrimData {
                                 double amount,
                                 AttributeModifier.Operation operation) {
 
-        public NamespacedKey itemKey() {
-            return key("material/" + this.id);
+        public NamespacedKey itemKey(EquipmentSlotGroup slot) {
+            return key("material/" + this.id + "/" + slotToken(slot));
         }
 
         public String displayValue() {
@@ -88,25 +92,25 @@ public final class TrimData {
 
     public static final List<MaterialBonus> MATERIALS = List.of(
             new MaterialBonus("iron", TrimMaterial.IRON, "铁锭",
-                    Attribute.ARMOR_TOUGHNESS, 1.0, AttributeModifier.Operation.ADD_NUMBER),
+                    Attribute.KNOCKBACK_RESISTANCE, 0.16, AttributeModifier.Operation.ADD_NUMBER),
             new MaterialBonus("copper", TrimMaterial.COPPER, "铜锭",
                     Attribute.BLOCK_INTERACTION_RANGE, 0.5, AttributeModifier.Operation.ADD_NUMBER),
             new MaterialBonus("gold", TrimMaterial.GOLD, "金锭",
-                    Attribute.BLOCK_BREAK_SPEED, 0.10, AttributeModifier.Operation.ADD_SCALAR),
+                    Attribute.BLOCK_BREAK_SPEED, 0.25, AttributeModifier.Operation.ADD_SCALAR),
             new MaterialBonus("redstone", TrimMaterial.REDSTONE, "红石粉",
-                    Attribute.ATTACK_DAMAGE, 0.5, AttributeModifier.Operation.ADD_NUMBER),
+                    Attribute.ATTACK_DAMAGE, 1.2, AttributeModifier.Operation.ADD_NUMBER),
             new MaterialBonus("lapis", TrimMaterial.LAPIS, "青金石",
-                    Attribute.MOVEMENT_SPEED, 0.03, AttributeModifier.Operation.ADD_SCALAR),
+                    Attribute.MOVEMENT_SPEED, 0.06, AttributeModifier.Operation.ADD_SCALAR),
             new MaterialBonus("emerald", TrimMaterial.EMERALD, "绿宝石",
                     Attribute.SAFE_FALL_DISTANCE, 1.0, AttributeModifier.Operation.ADD_NUMBER),
             new MaterialBonus("diamond", TrimMaterial.DIAMOND, "钻石",
-                    Attribute.ATTACK_SPEED, 0.08, AttributeModifier.Operation.ADD_NUMBER),
+                    Attribute.ATTACK_SPEED, 0.16, AttributeModifier.Operation.ADD_NUMBER),
             new MaterialBonus("quartz", TrimMaterial.QUARTZ, "下界石英",
-                    Attribute.ARMOR, 0.5, AttributeModifier.Operation.ADD_NUMBER),
+                    Attribute.ARMOR, 1.5, AttributeModifier.Operation.ADD_NUMBER),
             new MaterialBonus("amethyst", TrimMaterial.AMETHYST, "紫水晶",
-                    Attribute.MAX_HEALTH, 1.0, AttributeModifier.Operation.ADD_NUMBER),
+                    Attribute.MAX_HEALTH, 2.0, AttributeModifier.Operation.ADD_NUMBER),
             new MaterialBonus("netherite", TrimMaterial.NETHERITE, "下界合金锭",
-                    Attribute.KNOCKBACK_RESISTANCE, 0.08, AttributeModifier.Operation.ADD_NUMBER),
+                    Attribute.ARMOR_TOUGHNESS, 1.8, AttributeModifier.Operation.ADD_NUMBER),
             new MaterialBonus("resin", TrimMaterial.RESIN, "树脂砖",
                     Attribute.FALL_DAMAGE_MULTIPLIER, -0.10, AttributeModifier.Operation.ADD_SCALAR)
     );
@@ -148,8 +152,8 @@ public final class TrimData {
             return this.trigger == Trigger.ALWAYS && !this.partial.isEmpty();
         }
 
-        public NamespacedKey itemKey(int index) {
-            return TrimData.key("pattern/" + key().value() + "/" + index);
+        public NamespacedKey itemKey(int index, EquipmentSlotGroup slot) {
+            return TrimData.key("pattern/" + key().value() + "/" + index + "/" + slotToken(slot));
         }
     }
 
@@ -225,9 +229,9 @@ public final class TrimData {
                     List.of(TrimAttribute.add(Attribute.ARMOR, 1.0),
                             TrimAttribute.scale(Attribute.BURNING_TIME, -0.20))),
             attributes(TrimPattern.RIB, "肋骨", "下界要塞", Trigger.ALWAYS,
-                    List.of(TrimAttribute.add(Attribute.KNOCKBACK_RESISTANCE, 0.05),
+                    List.of(TrimAttribute.add(Attribute.KNOCKBACK_RESISTANCE, 0.25),
                             TrimAttribute.scale(Attribute.BURNING_TIME, -0.15)),
-                    List.of(TrimAttribute.add(Attribute.KNOCKBACK_RESISTANCE, 0.10),
+                    List.of(TrimAttribute.add(Attribute.KNOCKBACK_RESISTANCE, 0.50),
                             TrimAttribute.scale(Attribute.BURNING_TIME, -0.30))),
             attributes(TrimPattern.EYE, "眼眸", "要塞", Trigger.ALWAYS,
                     List.of(TrimAttribute.scale(Attribute.GRAVITY, -0.05),
@@ -235,9 +239,9 @@ public final class TrimData {
                     List.of(TrimAttribute.scale(Attribute.GRAVITY, -0.10),
                             TrimAttribute.add(Attribute.ENTITY_INTERACTION_RANGE, 1.0))),
             attributes(TrimPattern.SPIRE, "尖塔", "末地城", Trigger.ALWAYS,
-                    List.of(TrimAttribute.add(Attribute.MAX_HEALTH, 1.0),
+                    List.of(TrimAttribute.add(Attribute.MAX_HEALTH, 4.0),
                             TrimAttribute.scale(Attribute.FALL_DAMAGE_MULTIPLIER, -0.10)),
-                    List.of(TrimAttribute.add(Attribute.MAX_HEALTH, 2.0),
+                    List.of(TrimAttribute.add(Attribute.MAX_HEALTH, 8.0),
                             TrimAttribute.scale(Attribute.FALL_DAMAGE_MULTIPLIER, -0.20))),
             attributes(TrimPattern.WARD, "监守", "远古城市", Trigger.FULL_SET_ONLY, List.of(), List.of()),
             attributes(TrimPattern.SILENCE, "幽静", "远古城市", Trigger.SNEAKING,
@@ -262,9 +266,9 @@ public final class TrimData {
                     List.of(new PotionGain(PotionEffectType.HASTE, 0, REFRESH)),
                     List.of(new PotionGain(PotionEffectType.HASTE, 1, REFRESH))),
             attributes(TrimPattern.TIDE, "潮汐", "远古守卫者", Trigger.IN_WATER,
-                    List.of(TrimAttribute.scale(Attribute.WATER_MOVEMENT_EFFICIENCY, 0.10),
+                    List.of(TrimAttribute.add(Attribute.WATER_MOVEMENT_EFFICIENCY, 0.10),
                             TrimAttribute.add(Attribute.OXYGEN_BONUS, 1.0)),
-                    List.of(TrimAttribute.scale(Attribute.WATER_MOVEMENT_EFFICIENCY, 0.20),
+                    List.of(TrimAttribute.add(Attribute.WATER_MOVEMENT_EFFICIENCY, 0.20),
                             TrimAttribute.add(Attribute.OXYGEN_BONUS, 2.0))),
             attributes(TrimPattern.BOLT, "镶铆", "试炼密室", Trigger.ALWAYS,
                     List.of(TrimAttribute.add(Attribute.ARMOR, 0.5)),

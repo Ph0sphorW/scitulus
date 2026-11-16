@@ -63,14 +63,21 @@ public final class ItemStamper {
 
         EquipmentSlotGroup slot = TrimData.slotGroupOf(item.getType());
         if (material != null) {
-            desired.put(new Key(material.attribute(), material.itemKey(), material.amount(), material.operation()),
+            desired.put(new Key(material.attribute(),
+                            material.itemKey(slot),
+                            material.amount(),
+                            material.operation()),
                     slot);
         }
         if (pattern != null && pattern.stampable()) {
             List<TrimData.TrimAttribute> attrs = pattern.partial();
             for (int i = 0; i < attrs.size(); i++) {
                 TrimData.TrimAttribute attr = attrs.get(i);
-                desired.put(new Key(attr.attribute(), pattern.itemKey(i), attr.amount(), attr.operation()), slot);
+                desired.put(new Key(attr.attribute(),
+                        pattern.itemKey(i, slot),
+                        attr.amount(),
+                        attr.operation()),
+                        slot);
             }
         }
 

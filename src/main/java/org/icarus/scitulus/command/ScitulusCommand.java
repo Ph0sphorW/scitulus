@@ -24,9 +24,11 @@ import org.icarus.scitulus.Scitulus;
 import org.icarus.scitulus.TrimData;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 @SuppressWarnings("removal")
 public final class ScitulusCommand implements CommandExecutor, TabCompleter {
@@ -65,7 +67,7 @@ public final class ScitulusCommand implements CommandExecutor, TabCompleter {
         for (TrimData.MaterialBonus bonus : TrimData.MATERIALS) {
             String mode = bonus.operation() == AttributeModifier.Operation.ADD_SCALAR ? "倍率" : "加算";
             sender.sendMessage(Component.text("  " + bonus.label() + " → " + bonus.attribute().getKey().getKey()
-                    + "  " + bonus.displayValue() + "（" + mode + "）  * 4 = " + bonus.displayTotal(),
+                            + "  " + bonus.displayValue() + "（" + mode + "）  * 4 = " + bonus.displayTotal(),
                     NamedTextColor.GRAY));
         }
 
@@ -90,7 +92,7 @@ public final class ScitulusCommand implements CommandExecutor, TabCompleter {
                 failures.add(label + ": 未刻上修饰符");
                 continue;
             }
-            String problem = verify(stamped, bonus.itemKey(), bonus.attribute(), bonus.amount(),
+            String problem = verify(stamped, bonus.itemKey(EquipmentSlotGroup.CHEST), bonus.attribute(), bonus.amount(),
                     bonus.operation(), EquipmentSlotGroup.CHEST);
             if (problem != null) {
                 failures.add(label + ": " + problem);
@@ -119,7 +121,7 @@ public final class ScitulusCommand implements CommandExecutor, TabCompleter {
             String problem = null;
             for (int i = 0; i < def.partial().size() && problem == null; i++) {
                 TrimData.TrimAttribute attr = def.partial().get(i);
-                problem = verify(result, def.itemKey(i), attr.attribute(), attr.amount(), attr.operation(),
+                problem = verify(result, def.itemKey(i, EquipmentSlotGroup.CHEST), attr.attribute(), attr.amount(), attr.operation(),
                         EquipmentSlotGroup.CHEST);
             }
             if (problem != null) {
@@ -163,7 +165,7 @@ public final class ScitulusCommand implements CommandExecutor, TabCompleter {
             ItemStack result = ItemStamper.stamp(withTrim(stamped, null, null));
             cleaned = result != null && countOurs(result) == 0;
         }
-        
+
         TrimData.PatternDefinition bolt = TrimData.patternOf(TrimPattern.BOLT.key());
         double perPieceArmor = bolt == null ? 0.0 : bolt.partial().stream()
                 .filter(attr -> attr.attribute() == Attribute.ARMOR)
@@ -181,25 +183,45 @@ public final class ScitulusCommand implements CommandExecutor, TabCompleter {
         double expectedScale = perPieceArmor * TrimData.FULL_SET_SIZE;
         boolean scaled = Math.abs((armorScaled - armorControl) - expectedScale) < 1.0E-6;
 
+        Material[] armorTypes = {Material.DIAMOND_HELMET, Material.DIAMOND_CHESTPLATE,
+                Material.DIAMOND_LEGGINGS, Material.DIAMOND_BOOTS};
+        Set<NamespacedKey> materialKeys = new HashSet<>();
+        for (Material armorType : armorTypes) {
+            ItemStack piece = ItemStamper.stamp(withTrim(new ItemStack(armorType),
+                    TrimMaterial.AMETHYST, TrimPattern.SENTRY));
+            ItemMeta pieceMeta = piece == null ? null : piece.getItemMeta();
+            if (pieceMeta != null && pieceMeta.getAttributeModifiers() != null) {
+                for (Map.Entry<Attribute, AttributeModifier> entry : pieceMeta.getAttributeModifiers().entries()) {
+                    if (TrimData.NAMESPACE.equals(entry.getValue().getKey().getNamespace())) {
+                        materialKeys.add(entry.getValue().getKey());
+                    }
+                }
+            }
+        }
+        boolean slotDistinct = materialKeys.size() == TrimData.FULL_SET_SIZE;
+
         sender.sendMessage(Component.text("── Scitulus 自检 ──", NamedTextColor.AQUA));
         sender.sendMessage(Component.text("  材料刻写: " + pass + "/" + TrimData.MATERIALS.size()
-                + (failures.isEmpty() ? " ✓" : " ✗"),
+                        + (failures.isEmpty() ? " ✓" : " ✗"),
                 failures.isEmpty() ? NamedTextColor.GREEN : NamedTextColor.RED));
         sender.sendMessage(Component.text("  纹饰单件档刻写: " + patternPass + "/" + patternTotal
-                + (patternPass == patternTotal ? " ✓" : " ✗"),
+                        + (patternPass == patternTotal ? " ✓" : " ✗"),
                 patternPass == patternTotal ? NamedTextColor.GREEN : NamedTextColor.RED));
         sender.sendMessage(Component.text("  纹饰按件累加: " + (scaled ? "✓" : "✗")
-                + "（4 件镶铆共 +" + (armorScaled - armorControl) + "，应为 +" + expectedScale + "）",
+                        + "（4 件镶铆共 +" + (armorScaled - armorControl) + "，应为 +" + expectedScale + "）",
                 scaled ? NamedTextColor.GREEN : NamedTextColor.RED));
+        sender.sendMessage(Component.text("  按槽位区分（同类护甲不互相覆盖）: " + (slotDistinct ? "✓" : "✗")
+                        + "（4 件共 " + materialKeys.size() + " 个不同修饰符 id）",
+                slotDistinct ? NamedTextColor.GREEN : NamedTextColor.RED));
         sender.sendMessage(Component.text("  无纹饰物品不动: " + (untouched ? "✓" : "✗"),
                 untouched ? NamedTextColor.GREEN : NamedTextColor.RED));
         sender.sendMessage(Component.text("  原版属性保留: " + (preserved ? "✓" : "✗")
-                + "（护甲 " + armorValue + " / 韧性 " + toughnessValue + "）",
+                        + "（护甲 " + armorValue + " / 韧性 " + toughnessValue + "）",
                 preserved ? NamedTextColor.GREEN : NamedTextColor.RED));
         sender.sendMessage(Component.text("  自定义属性共存: " + (coexist ? "✓" : "✗")
-                + "（生命 " + (customStamped == null ? "?" : attributeValue(customStamped, Attribute.MAX_HEALTH))
-                + " / 韧性 " + (customStamped == null ? "?"
-                : attributeValue(customStamped, Attribute.ARMOR_TOUGHNESS)) + "）",
+                        + "（生命 " + (customStamped == null ? "?" : attributeValue(customStamped, Attribute.MAX_HEALTH))
+                        + " / 韧性 " + (customStamped == null ? "?"
+                        : attributeValue(customStamped, Attribute.ARMOR_TOUGHNESS)) + "）",
                 coexist ? NamedTextColor.GREEN : NamedTextColor.RED));
         sender.sendMessage(Component.text("  拆纹饰清理: " + (cleaned ? "✓" : "✗"),
                 cleaned ? NamedTextColor.GREEN : NamedTextColor.RED));
